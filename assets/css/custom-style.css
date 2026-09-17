@@ -5872,10 +5872,10 @@ body > .loading-overlay {
 	line-height: 150px;
 	font-family: sans-serif;
 	font-size: 20px;
-	color: #fff000;
+	color: #89bf42;
 	letter-spacing:4px;
 	text-transform: uppercase;
-	text-shadow:0 0 10px #fff000;
+	text-shadow:0 0 10px #89bf42;
 	box-shadow: 0 0 20px rgba(0, 0, 0, 0.39);
 }
 
@@ -5887,8 +5887,8 @@ body > .loading-overlay {
 	width: 100%;
 	height: 100%;
 	border: 3px solid transparent;
-	border-top: 3px solid #fff000;
-	border-right: 3px solid #fff000;
+	border-top: 3px solid #89bf42;
+	border-right: 3px solid #89bf42;
 	border-radius: 50%;
 	-webkit-animation: animateCircle 2s linear infinite;
 	animation: animateCircle 2s linear infinite;
@@ -5913,10 +5913,10 @@ body > .loading-overlay {
 	width: 16px;
 	height: 16px;
 	border-radius: 50%;
-	background-color: #fff000;
+	background-color: #89bf42;
 	top: -6px;
 	right: -8px;
-	box-shadow: 0 0 20px #fff000;
+	box-shadow: 0 0 20px #89bf42;
 }
 
 @keyframes animateCircle
