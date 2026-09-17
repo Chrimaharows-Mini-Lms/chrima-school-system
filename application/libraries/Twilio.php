@@ -1,597 +1,1145 @@
-<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-	/**
-	* Name:  Twilio
-	*
-	* Author: Ben Edmunds
-	*		  ben.edmunds@gmail.com
-	*         @benedmunds
-	*
-	* Location:
-	*
-	* Created:  03.29.2011
-	*
-	* Description:  Modified Twilio API classes to work as a CodeIgniter library.
-	*               Added additional helper methods.
-	*               Original code and copyright are below.
-	*
-	*
-	*/
 
+<?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-	class Twilio
-	{
-		protected $_ci;
-		protected $_twilio;
-		protected $mode;
-		protected $account_sid;
-		protected $auth_token;
-		protected $api_version;
-		protected $number;
+/**
+ * CodeIgniter 3 Twilio Library
+ *
+ * Uses Twilio REST API
+ * API Version: 2010-04-01
+ *
+ * Database fields:
+ * field_one   = Twilio Account SID
+ * field_two   = Twilio Auth Token
+ * field_three = Twilio Phone Number
+ */
 
+class Twilio
+{
+    protected $_ci;
+    protected $_twilio;
 
-		function __construct()
-		{
-			$ci 	= & get_instance();
-            if (is_superadmin_loggedin()) {
-                $branchID = $ci->input->post('branch_id');
-            } else {
-                $branchID = get_loggedin_branch_id();
-            }
-			$twilio = $ci->db->get_where('sms_credential', array('sms_api_id' => 1, 'branch_id' => $branchID))->row_array();
-            $this->mode        = 'prod';
-            $this->api_version = '2010-04-01';
-            $this->account_sid = isset($twilio['field_one']) ? $twilio['field_one'] : '';
-            $this->auth_token  = isset($twilio['field_two']) ? $twilio['field_two'] : '';
-            $this->number      = isset($twilio['field_three']) ? $twilio['field_three'] : '';
+    protected $mode;
+    protected $account_sid;
+    protected $auth_token;
+    protected $api_version;
+    protected $number;
 
-			//initialize the client
-			$this->_twilio = new TwilioRestClient($this->account_sid, $this->auth_token);
-		}
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->_ci =& get_instance();
 
-        public function get_twilio() {
-            $array = array(
-                'mode' => $this->mode,
-                'accountSID' => $this->account_sid,
-                'authtoken' => $this->auth_token,
-                'version' => $this->api_version,
-                'number' => $this->number
+        /*
+         * Get branch ID
+         */
+        $branchID = null;
+
+        if (function_exists('is_superadmin_loggedin') && is_superadmin_loggedin()) {
+            $branchID = $this->_ci->input->post('branch_id');
+        } elseif (function_exists('get_loggedin_branch_id')) {
+            $branchID = get_loggedin_branch_id();
+        }
+
+        /*
+         * Get Twilio credentials from database
+         */
+        $twilio = array();
+
+        if ($branchID !== null && $branchID !== '') {
+
+            $query = $this->_ci->db->get_where(
+                'sms_credential',
+                array(
+                    'sms_api_id' => 1,
+                    'branch_id'  => $branchID
+                )
             );
-            return $array;
+
+            if ($query->num_rows() > 0) {
+                $twilio = $query->row_array();
+            }
         }
 
-		/**
-		 * __call
-		 *
-		 * @desc Interface with rest client
-		 *
-		 */
-		public function __call($method, $arguments)
-		{
-			if (!method_exists( $this->_twilio, $method) )
-			{
-				throw new Exception('Undefined method Twilio::' . $method . '() called');
-			}
+        /*
+         * Twilio configuration
+         */
+        $this->mode        = 'prod';
+        $this->api_version = '2010-04-01';
 
-			return call_user_func_array( array($this->_twilio, $method), $arguments);
-		}
+        /*
+         * Database mapping
+         *
+         * field_one   = Account SID
+         * field_two   = Auth Token
+         * field_three = Twilio phone number
+         */
+        $this->account_sid = isset($twilio['field_one'])
+            ? trim($twilio['field_one'])
+            : '';
 
-		/**
-		 * Send SMS
-		 *
-		 * @desc Send a basic SMS
-		 *
-		 * @param <int> Phone Number
-		 * @param <string> Text Message
-		 */
-		public function sms($from, $to, $message)
-		{
-			$url = '/' . $this->api_version . '/Accounts/' . $this->account_sid . '/SMS/Messages';
+        $this->auth_token = isset($twilio['field_two'])
+            ? trim($twilio['field_two'])
+            : '';
 
-			$data = array(
-				        'From'   => $from,
-				        'To'   => $to,
-				        'Body' => $message,
-			);
+        $this->number = isset($twilio['field_three'])
+            ? trim($twilio['field_three'])
+            : '';
 
-			if ($this->mode == 'sandbox')
-				$data['From'] = $this->number;
-
-			return $this->_twilio->request($url, 'POST', $data);
-		}
-
-	}
-
-    /*
-    Copyright (c) 2009-2010 Twilio, Inc.
-
-    Permission is hereby granted, free of charge, to any person
-    obtaining a copy of this software and associated documentation
-    files (the "Software"), to deal in the Software without
-    restriction, including without limitation the rights to use,
-    copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following
-    conditions:
-
-    The above copyright notice and this permission notice shall be
-    included in all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-    OTHER DEALINGS IN THE SOFTWARE.
-    */
-
-    // VERSION: 2.0.8
-
-    // Twilio REST Helpers
-    // ========================================================================
-
-    // ensure Curl is installed
-    if(!extension_loaded("curl"))
-        throw(new Exception(
-            "Curl extension is required for TwilioRestClient to work"));
-
-    /*
-     * TwilioRestResponse holds all the REST response data
-     * Before using the reponse, check IsError to see if an exception
-     * occurred with the data sent to Twilio
-     * ResponseXml will contain a SimpleXml object with the response xml
-     * ResponseText contains the raw string response
-     * Url and QueryString are from the request
-     * HttpStatus is the response code of the request
-     */
-    class TwilioRestResponse {
-
-        public $ResponseText;
-        public $ResponseXml;
-        public $HttpStatus;
-        public $Url;
-        public $QueryString;
-        public $IsError;
-        public $ErrorMessage;
-
-        public function __construct($url, $text, $status) {
-            preg_match('/([^?]+)\??(.*)/', $url, $matches);
-            $this->Url = $matches[1];
-            $this->QueryString = $matches[2];
-            $this->ResponseText = $text;
-            $this->HttpStatus = $status;
-            if($this->HttpStatus != 204)
-                $this->ResponseXml = @simplexml_load_string($text);
-
-            if($this->IsError = ($status >= 400))
-                $this->ErrorMessage =
-                    (string)$this->ResponseXml->RestException->Message;
-
-        }
-
+        /*
+         * Initialize Twilio client
+         */
+        $this->_twilio = new TwilioRestClient(
+            $this->account_sid,
+            $this->auth_token
+        );
     }
 
-    /* TwilioRestClient throws TwilioException on error
-     * Useful to catch this exception separately from general PHP
-     * exceptions, if you want
+    /**
+     * Return Twilio configuration
+     *
+     * IMPORTANT:
+     * Auth token is intentionally not returned.
      */
-    class TwilioException extends Exception {}
-
-    /*
-     * TwilioRestBaseClient: the core Rest client, talks to the Twilio REST
-     * API. Returns a TwilioRestResponse object for all responses if Twilio's
-     * API was reachable Throws a TwilioException if Twilio's REST API was
-     * unreachable
-     */
-
-    class TwilioRestClient {
-
-        protected $Endpoint;
-        protected $AccountSid;
-        protected $AuthToken;
-
-        /*
-         * __construct
-         *   $username : Your AccountSid
-         *   $password : Your account's AuthToken
-         *   $endpoint : The Twilio REST Service URL, currently defaults to
-         * the proper URL
-         */
-        public function __construct($accountSid, $authToken,
-            $endpoint = "https://api.twilio.com") {
-
-            $this->AccountSid = $accountSid;
-            $this->AuthToken = $authToken;
-            $this->Endpoint = $endpoint;
-        }
-
-        /*
-         * sendRequst
-         *   Sends a REST Request to the Twilio REST API
-         *   $path : the URL (relative to the endpoint URL, after the /v1)
-         *   $method : the HTTP method to use, defaults to GET
-         *   $vars : for POST or PUT, a key/value associative array of data to
-         * send, for GET will be appended to the URL as query params
-         */
-        public function request($path, $method = "GET", $vars = array()) {
-            $fp = null;
-            $tmpfile = "";
-            $encoded = "";
-            foreach($vars AS $key=>$value)
-                $encoded .= "$key=".urlencode($value)."&";
-            $encoded = substr($encoded, 0, -1);
-
-            // construct full url
-            $url = "{$this->Endpoint}/$path";
-
-            // if GET and vars, append them
-            if($method == "GET")
-                $url .= (FALSE === strpos($path, '?')?"?":"&").$encoded;
-
-            // initialize a new curl object
-            $curl = curl_init($url);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
-            switch(strtoupper($method)) {
-                case "GET":
-                    curl_setopt($curl, CURLOPT_HTTPGET, TRUE);
-                    break;
-                case "POST":
-                    curl_setopt($curl, CURLOPT_POST, TRUE);
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
-                    break;
-                case "PUT":
-                    // curl_setopt($curl, CURLOPT_PUT, TRUE);
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
-                    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
-                    file_put_contents($tmpfile = tempnam("/tmp", "put_"),
-                        $encoded);
-                    curl_setopt($curl, CURLOPT_INFILE, $fp = fopen($tmpfile,
-                        'r'));
-                    curl_setopt($curl, CURLOPT_INFILESIZE,
-                        filesize($tmpfile));
-                    break;
-                case "DELETE":
-                    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-                    break;
-                default:
-                    throw(new TwilioException("Unknown method $method"));
-                    break;
-            }
-
-            // send credentials
-            curl_setopt($curl, CURLOPT_USERPWD,
-                $pwd = "{$this->AccountSid}:{$this->AuthToken}");
-
-            // do the request. If FALSE, then an exception occurred
-            if(FALSE === ($result = curl_exec($curl)))
-                throw(new TwilioException(
-                    "Curl failed with error " . curl_error($curl)));
-
-            // get result code
-            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-            // unlink tmpfiles
-            if($fp)
-                fclose($fp);
-            if(strlen($tmpfile))
-                unlink($tmpfile);
-
-            return new TwilioRestResponse($url, $result, $responseCode);
-        }
+    public function get_twilio()
+    {
+        return array(
+            'mode'       => $this->mode,
+            'accountSID' => $this->account_sid,
+            'version'    => $this->api_version,
+            'number'     => $this->number
+        );
     }
 
-    // Twiml Response Helpers
-    // ========================================================================
-
-    /*
-     * Verb: Base class for all TwiML verbs used in creating Responses
-     * Throws a TwilioException if an non-supported attribute or
-     * attribute value is added to the verb. All methods in Verb are protected
-     * or private
+    /**
+     * Send SMS
+     *
+     * @param string $from
+     * @param string $to
+     * @param string $message
+     *
+     * @return TwilioRestResponse
      */
-
-    class Verb {
-        private $tag;
-        private $body;
-        private $attr;
-        private $children;
-
+    public function sms($from, $to, $message)
+    {
         /*
-         * __construct
-         *   $body : Verb contents
-         *   $body : Verb attributes
+         * Validate credentials
          */
-        function __construct($body=NULL, $attr = array()) {
-            if (is_array($body)) {
-                $attr = $body;
-                $body = NULL;
-            }
-            $this->tag = get_class($this);
-            $this->body = $body;
-            $this->attr = array();
-            $this->children = array();
-            self::addAttributes($attr);
+        if (empty($this->account_sid)) {
+            throw new TwilioException(
+                'Twilio Account SID is missing.'
+            );
+        }
+
+        if (empty($this->auth_token)) {
+            throw new TwilioException(
+                'Twilio Auth Token is missing.'
+            );
         }
 
         /*
-         * addAttributes
-         *     $attr  : A key/value array of attributes to be added
-         *     $valid : A key/value array containging the accepted attributes
-         *     for this verb
-         *     Throws an exception if an invlaid attribute is found
+         * Use configured Twilio number if no From number
+         * was supplied.
          */
-        private function addAttributes($attr) {
-            foreach ($attr as $key => $value) {
-                if(in_array($key, $this->valid))
-                    $this->attr[$key] = $value;
-                else
-                    throw new TwilioException($key . ', ' . $value .
-                       " is not a supported attribute pair");
-            }
+        if (empty($from)) {
+            $from = $this->number;
+        }
+
+        if (empty($from)) {
+            throw new TwilioException(
+                'Twilio From phone number is missing.'
+            );
+        }
+
+        if (empty($to)) {
+            throw new TwilioException(
+                'Recipient phone number is missing.'
+            );
+        }
+
+        if (empty($message)) {
+            throw new TwilioException(
+                'SMS message is empty.'
+            );
         }
 
         /*
-         * append
-         *     Nests other verbs inside self.
+         * Twilio Messages API endpoint
+         *
+         * Correct endpoint:
+         *
+         * /2010-04-01/Accounts/{AccountSid}/Messages.json
          */
-        function append($verb) {
-            if(is_null($this->nesting))
-                throw new TwilioException($this->tag ." doesn't support nesting");
-            else if(!is_object($verb))
-                throw new TwilioException($verb->tag . " is not an object");
-            else if(!in_array(get_class($verb), $this->nesting))
-                throw new TwilioException($verb->tag . " is not an allowed verb here");
-            else {
-                $this->children[] = $verb;
-                return $verb;
-            }
-        }
+        $url = '/'
+            . $this->api_version
+            . '/Accounts/'
+            . $this->account_sid
+            . '/Messages.json';
 
         /*
-         * set
-         *     $attr  : An attribute to be added
-         *    $valid : The attrbute value for this verb
-         *     No error checking here
+         * Request data
          */
-        function set($key, $value){
-            $this->attr[$key] = $value;
-        }
-
-        /* Convenience Methods */
-        function addSay($body=NULL, $attr = array()){
-            return self::append(new Say($body, $attr));
-        }
-
-        function addPlay($body=NULL, $attr = array()){
-            return self::append(new Play($body, $attr));
-        }
-
-        function addDial($body=NULL, $attr = array()){
-            return self::append(new Dial($body, $attr));
-        }
-
-        function addNumber($body=NULL, $attr = array()){
-            return self::append(new Number($body, $attr));
-        }
-
-        function addGather($attr = array()){
-            return self::append(new Gather($attr));
-        }
-
-        function addRecord($attr = array()){
-            return self::append(new Record(NULL, $attr));
-        }
-
-        function addHangup(){
-            return self::append(new Hangup());
-        }
-
-        function addRedirect($body=NULL, $attr = array()){
-            return self::append(new Redirect($body, $attr));
-        }
-
-        function addPause($attr = array()){
-            return self::append(new Pause($attr));
-        }
-
-        function addConference($body=NULL, $attr = array()){
-            return self::append(new Conference($body, $attr));
-        }
-
-        function addSms($body=NULL, $attr = array()){
-            return self::append(new Sms($body, $attr));
-        }
+        $data = array(
+            'From' => $from,
+            'To'   => $to,
+            'Body' => $message
+        );
 
         /*
-         * write
-         * Output the XML for this verb and all it's children
-         *    $parent: This verb's parent verb
-         *    $writeself : If FALSE, Verb will not output itself,
-         *    only its children
+         * Send request
          */
-        protected function write($parent, $writeself=TRUE){
-            if($writeself) {
-                $elem = $parent->addChild($this->tag, htmlspecialchars($this->body));
-                foreach($this->attr as $key => $value)
-                    $elem->addAttribute($key, $value);
-                foreach($this->children as $child)
-                    $child->write($elem);
-            } else {
-                foreach($this->children as $child)
-                    $child->write($parent);
-            }
-
-        }
-
+        return $this->_twilio->request(
+            $url,
+            'POST',
+            $data
+        );
     }
 
-
-    class Response extends Verb {
-
-        private $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>";
-
-        protected $nesting = array('Say', 'Play', 'Gather', 'Record',
-            'Dial', 'Redirect', 'Pause', 'Hangup', 'Sms');
-
-        function __construct(){
-            parent::__construct(NULL);
+    /**
+     * Magic method to access TwilioRestClient methods
+     */
+    public function __call($method, $arguments)
+    {
+        if (!method_exists($this->_twilio, $method)) {
+            throw new Exception(
+                'Undefined method Twilio::' . $method . '() called'
+            );
         }
 
-        function Respond($sendHeader = true) {
-            // try to force the xml data type
-            // this is generally unneeded by Twilio, but nice to have
-            if($sendHeader)
-            {
-                if(!headers_sent())
-                {
-                    header("Content-type: text/xml");
+        return call_user_func_array(
+            array($this->_twilio, $method),
+            $arguments
+        );
+    }
+}
+
+
+/**
+ * ============================================================
+ * Twilio REST Response
+ * ============================================================
+ */
+class TwilioRestResponse
+{
+    public $ResponseText;
+    public $ResponseXml;
+    public $HttpStatus;
+    public $Url;
+    public $QueryString;
+    public $IsError;
+    public $ErrorMessage;
+
+    public function __construct($url, $text, $status)
+    {
+        /*
+         * Separate URL and query string
+         */
+        $parts = explode('?', $url, 2);
+
+        $this->Url = isset($parts[0])
+            ? $parts[0]
+            : $url;
+
+        $this->QueryString = isset($parts[1])
+            ? $parts[1]
+            : '';
+
+        $this->ResponseText = $text;
+        $this->HttpStatus = $status;
+
+        /*
+         * Try to parse XML if returned
+         */
+        $this->ResponseXml = null;
+
+        if ($this->HttpStatus != 204 && !empty($text)) {
+            $this->ResponseXml = @simplexml_load_string($text);
+        }
+
+        /*
+         * HTTP 400+ means error
+         */
+        $this->IsError = ($status >= 400);
+
+        /*
+         * Get error message
+         */
+        $this->ErrorMessage = '';
+
+        if ($this->IsError) {
+
+            /*
+             * Twilio XML error
+             */
+            if ($this->ResponseXml) {
+
+                if (isset($this->ResponseXml->RestException->Message)) {
+                    $this->ErrorMessage =
+                        (string) $this->ResponseXml->RestException->Message;
+                }
+
+                /*
+                 * Newer Twilio API responses can contain:
+                 * <message>...</message>
+                 */
+                if (
+                    empty($this->ErrorMessage) &&
+                    isset($this->ResponseXml->message)
+                ) {
+                    $this->ErrorMessage =
+                        (string) $this->ResponseXml->message;
                 }
             }
-            $simplexml = new SimpleXMLElement($this->xml);
-            $this->write($simplexml, FALSE);
-            print $simplexml->asXML();
+
+            /*
+             * If XML didn't contain an error,
+             * use raw response.
+             */
+            if (empty($this->ErrorMessage)) {
+                $this->ErrorMessage = $text;
+            }
+        }
+    }
+}
+
+
+/**
+ * ============================================================
+ * Twilio Exception
+ * ============================================================
+ */
+class TwilioException extends Exception
+{
+}
+
+
+/**
+ * ============================================================
+ * Twilio REST Client
+ * ============================================================
+ */
+class TwilioRestClient
+{
+    protected $Endpoint;
+    protected $AccountSid;
+    protected $AuthToken;
+
+    /**
+     * Constructor
+     */
+    public function __construct(
+        $accountSid,
+        $authToken,
+        $endpoint = 'https://api.twilio.com'
+    ) {
+        $this->AccountSid = trim($accountSid);
+        $this->AuthToken  = trim($authToken);
+        $this->Endpoint   = rtrim($endpoint, '/');
+
+        /*
+         * Check cURL
+         */
+        if (!extension_loaded('curl')) {
+            throw new TwilioException(
+                'PHP cURL extension is required for Twilio.'
+            );
+        }
+    }
+
+    /**
+     * Send REST request
+     */
+    public function request(
+        $path,
+        $method = 'GET',
+        $vars = array()
+    ) {
+        /*
+         * Validate credentials
+         */
+        if (empty($this->AccountSid)) {
+            throw new TwilioException(
+                'Twilio Account SID is empty.'
+            );
         }
 
-        function asURL($encode = TRUE){
-            $simplexml = new SimpleXMLElement($this->xml);
-            $this->write($simplexml, FALSE);
-            if($encode)
-                return urlencode($simplexml->asXML());
-            else
-                return $simplexml->asXML();
+        if (empty($this->AuthToken)) {
+            throw new TwilioException(
+                'Twilio Auth Token is empty.'
+            );
         }
 
-    }
+        /*
+         * Normalize path
+         */
+        $path = '/' . ltrim($path, '/');
 
-    class Say extends Verb {
+        /*
+         * Build URL
+         */
+        $url = $this->Endpoint . $path;
 
-        protected $valid = array('voice','language','loop');
+        /*
+         * Build POST data
+         */
+        $encoded = '';
 
-    }
-
-	class Reject extends Verb {
-
-		protected $valid = array('reason');
-
-	}
-
-    class Play extends Verb {
-
-        protected $valid = array('loop');
-
-    }
-
-
-    class Record extends Verb {
-
-        protected $valid = array('action','method','timeout','finishOnKey',
-								 'maxLength','transcribe','transcribeCallback', 'playBeep');
-
-    }
-
-
-    class Dial extends Verb {
-
-        protected $valid = array('action','method','timeout','hangupOnStar',
-            'timeLimit','callerId');
-
-        protected $nesting = array('Number','Conference');
-
-    }
-
-    class Redirect extends Verb {
-
-        protected $valid = array('method');
-
-    }
-
-    class Pause extends Verb {
-
-        protected $valid = array('length');
-
-        function __construct($attr = array()) {
-            parent::__construct(NULL, $attr);
+        if (!empty($vars)) {
+            $encoded = http_build_query(
+                $vars,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
         }
 
-    }
-
-    class Hangup extends Verb {
-
-        function __construct() {
-            parent::__construct(NULL, array());
+        /*
+         * For GET requests append query parameters
+         */
+        if (
+            strtoupper($method) === 'GET' &&
+            !empty($encoded)
+        ) {
+            $url .= (
+                strpos($url, '?') === false
+                ? '?'
+                : '&'
+            ) . $encoded;
         }
 
+        /*
+         * Initialize cURL
+         */
+        $curl = curl_init($url);
 
-    }
-
-
-    class Gather extends Verb {
-
-        protected $valid = array('action','method','timeout','finishOnKey',
-            'numDigits');
-
-        protected $nesting = array('Say', 'Play', 'Pause');
-
-        function __construct($attr = array()){
-            parent::__construct(NULL, $attr);
+        if ($curl === false) {
+            throw new TwilioException(
+                'Unable to initialize cURL.'
+            );
         }
 
-    }
+        /*
+         * General cURL options
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_RETURNTRANSFER,
+            true
+        );
 
-    class Number extends Verb {
+        /*
+         * SSL verification ENABLED
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_SSL_VERIFYPEER,
+            true
+        );
 
-        protected $valid = array('url','sendDigits');
+        curl_setopt(
+            $curl,
+            CURLOPT_SSL_VERIFYHOST,
+            2
+        );
 
-    }
+        /*
+         * Follow redirects
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_FOLLOWLOCATION,
+            true
+        );
 
-    class Conference extends Verb {
+        /*
+         * Connection timeout
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_CONNECTTIMEOUT,
+            15
+        );
 
-        protected $valid = array('muted','beep','startConferenceOnEnter',
-            'endConferenceOnExit','waitUrl','waitMethod');
+        /*
+         * Request timeout
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_TIMEOUT,
+            30
+        );
 
-    }
+        /*
+         * User agent
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_USERAGENT,
+            'CodeIgniter Twilio Client'
+        );
 
-    class Sms extends Verb {
-        protected $valid = array('to', 'from', 'action', 'method', 'statusCallback');
-    }
+        /*
+         * HTTP method
+         */
+        switch (strtoupper($method)) {
 
-    // Twilio Utility function and Request Validation
-    // ========================================================================
+            case 'GET':
 
-    class TwilioUtils {
+                curl_setopt(
+                    $curl,
+                    CURLOPT_HTTPGET,
+                    true
+                );
 
-        protected $AccountSid;
-        protected $AuthToken;
+                break;
 
-        function __construct($id, $token){
-            $this->AuthToken = $token;
-            $this->AccountSid = $id;
+            case 'POST':
+
+                curl_setopt(
+                    $curl,
+                    CURLOPT_POST,
+                    true
+                );
+
+                curl_setopt(
+                    $curl,
+                    CURLOPT_POSTFIELDS,
+                    $encoded
+                );
+
+                break;
+
+            case 'PUT':
+
+                curl_setopt(
+                    $curl,
+                    CURLOPT_CUSTOMREQUEST,
+                    'PUT'
+                );
+
+                curl_setopt(
+                    $curl,
+                    CURLOPT_POSTFIELDS,
+                    $encoded
+                );
+
+                break;
+
+            case 'DELETE':
+
+                curl_setopt(
+                    $curl,
+                    CURLOPT_CUSTOMREQUEST,
+                    'DELETE'
+                );
+
+                break;
+
+            default:
+
+                curl_close($curl);
+
+                throw new TwilioException(
+                    'Unknown HTTP method: ' . $method
+                );
         }
 
-        public function validateRequest($expected_signature, $url, $data = array()) {
+        /*
+         * HTTP Basic Authentication
+         *
+         * Twilio uses:
+         *
+         * Account SID : Auth Token
+         */
+        curl_setopt(
+            $curl,
+            CURLOPT_USERPWD,
+            $this->AccountSid . ':' . $this->AuthToken
+        );
 
-           // sort the array by keys
-           ksort($data);
+        /*
+         * Execute request
+         */
+        $result = curl_exec($curl);
 
-           // append them to the data string in order
-           // with no delimiters
-           foreach($data AS $key=>$value)
-                   $url .= "$key$value";
+        /*
+         * Check cURL error
+         */
+        if ($result === false) {
 
-           // This function calculates the HMAC hash of the data with the key
-           // passed in
-           // Note: hash_hmac requires PHP 5 >= 5.1.2 or PECL hash:1.1-1.5
-           // Or http://pear.php.net/package/Crypt_HMAC/
-           $calculated_signature = base64_encode(hash_hmac("sha1",$url, $this->AuthToken, true));
+            $curlError = curl_error($curl);
+            $curlErrno = curl_errno($curl);
 
-           return $calculated_signature == $expected_signature;
+            curl_close($curl);
 
+            throw new TwilioException(
+                'Twilio cURL error (' .
+                $curlErrno .
+                '): ' .
+                $curlError
+            );
         }
 
+        /*
+         * Get HTTP status
+         */
+        $responseCode = curl_getinfo(
+            $curl,
+            CURLINFO_HTTP_CODE
+        );
+
+        /*
+         * Get content type
+         */
+        $contentType = curl_getinfo(
+            $curl,
+            CURLINFO_CONTENT_TYPE
+        );
+
+        /*
+         * Close cURL
+         */
+        curl_close($curl);
+
+        /*
+         * Create response object
+         */
+        $response = new TwilioRestResponse(
+            $url,
+            $result,
+            $responseCode
+        );
+
+        /*
+         * If Twilio returned an error, keep the
+         * complete response available to the caller.
+         */
+        return $response;
     }
+}
+
+
+/**
+ * ============================================================
+ * TwiML Response Helpers
+ * ============================================================
+ */
+
+class Verb
+{
+    private $tag;
+    private $body;
+    private $attr;
+    private $children;
+
+    protected $valid = array();
+    protected $nesting = null;
+
+    /**
+     * Constructor
+     */
+    public function __construct(
+        $body = null,
+        $attr = array()
+    ) {
+        if (is_array($body)) {
+            $attr = $body;
+            $body = null;
+        }
+
+        $this->tag = get_class($this);
+        $this->body = $body;
+        $this->attr = array();
+        $this->children = array();
+
+        $this->addAttributes($attr);
+    }
+
+    /**
+     * Add attributes
+     */
+    private function addAttributes($attr)
+    {
+        foreach ($attr as $key => $value) {
+
+            if (in_array($key, $this->valid)) {
+
+                $this->attr[$key] = $value;
+
+            } else {
+
+                throw new TwilioException(
+                    $key . ', ' . $value .
+                    ' is not a supported attribute pair'
+                );
+            }
+        }
+    }
+
+    /**
+     * Append child verb
+     */
+    public function append($verb)
+    {
+        if (is_null($this->nesting)) {
+
+            throw new TwilioException(
+                $this->tag .
+                " doesn't support nesting"
+            );
+
+        } elseif (!is_object($verb)) {
+
+            throw new TwilioException(
+                'Verb is not an object'
+            );
+
+        } elseif (!in_array(
+            get_class($verb),
+            $this->nesting
+        )) {
+
+            throw new TwilioException(
+                get_class($verb) .
+                ' is not an allowed verb here'
+            );
+
+        } else {
+
+            $this->children[] = $verb;
+
+            return $verb;
+        }
+    }
+
+    /**
+     * Set attribute
+     */
+    public function set($key, $value)
+    {
+        $this->attr[$key] = $value;
+    }
+
+    /**
+     * Convenience methods
+     */
+    public function addSay(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Say($body, $attr)
+        );
+    }
+
+    public function addPlay(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Play($body, $attr)
+        );
+    }
+
+    public function addDial(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Dial($body, $attr)
+        );
+    }
+
+    public function addNumber(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Number($body, $attr)
+        );
+    }
+
+    public function addGather(
+        $attr = array()
+    ) {
+        return $this->append(
+            new Gather($attr)
+        );
+    }
+
+    public function addRecord(
+        $attr = array()
+    ) {
+        return $this->append(
+            new Record(null, $attr)
+        );
+    }
+
+    public function addHangup()
+    {
+        return $this->append(
+            new Hangup()
+        );
+    }
+
+    public function addRedirect(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Redirect($body, $attr)
+        );
+    }
+
+    public function addPause(
+        $attr = array()
+    ) {
+        return $this->append(
+            new Pause($attr)
+        );
+    }
+
+    public function addConference(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Conference($body, $attr)
+        );
+    }
+
+    public function addSms(
+        $body = null,
+        $attr = array()
+    ) {
+        return $this->append(
+            new Sms($body, $attr)
+        );
+    }
+
+    /**
+     * Write XML
+     */
+    protected function write(
+        $parent,
+        $writeself = true
+    ) {
+        if ($writeself) {
+
+            $elem = $parent->addChild(
+                $this->tag,
+                htmlspecialchars(
+                    (string) $this->body,
+                    ENT_XML1,
+                    'UTF-8'
+                )
+            );
+
+            foreach ($this->attr as $key => $value) {
+                $elem->addAttribute(
+                    $key,
+                    htmlspecialchars(
+                        (string) $value,
+                        ENT_XML1,
+                        'UTF-8'
+                    )
+                );
+            }
+
+            foreach ($this->children as $child) {
+                $child->write($elem);
+            }
+
+        } else {
+
+            foreach ($this->children as $child) {
+                $child->write($parent);
+            }
+        }
+    }
+}
+
+
+/**
+ * TwiML Response
+ */
+class Response extends Verb
+{
+    private $xml =
+        '<?xml version="1.0" encoding="UTF-8"?>' .
+        '<Response></Response>';
+
+    protected $nesting = array(
+        'Say',
+        'Play',
+        'Gather',
+        'Record',
+        'Dial',
+        'Redirect',
+        'Pause',
+        'Hangup',
+        'Sms'
+    );
+
+    public function __construct()
+    {
+        parent::__construct(null);
+    }
+
+    public function Respond($sendHeader = true)
+    {
+        if ($sendHeader) {
+
+            if (!headers_sent()) {
+
+                header(
+                    'Content-Type: text/xml; charset=UTF-8'
+                );
+            }
+        }
+
+        $simplexml = new SimpleXMLElement(
+            $this->xml
+        );
+
+        $this->write(
+            $simplexml,
+            false
+        );
+
+        print $simplexml->asXML();
+    }
+
+    public function asURL($encode = true)
+    {
+        $simplexml = new SimpleXMLElement(
+            $this->xml
+        );
+
+        $this->write(
+            $simplexml,
+            false
+        );
+
+        if ($encode) {
+            return urlencode(
+                $simplexml->asXML()
+            );
+        }
+
+        return $simplexml->asXML();
+    }
+}
+
+
+/**
+ * TwiML verbs
+ */
+class Say extends Verb
+{
+    protected $valid = array(
+        'voice',
+        'language',
+        'loop'
+    );
+}
+
+class Reject extends Verb
+{
+    protected $valid = array(
+        'reason'
+    );
+}
+
+class Play extends Verb
+{
+    protected $valid = array(
+        'loop'
+    );
+}
+
+class Record extends Verb
+{
+    protected $valid = array(
+        'action',
+        'method',
+        'timeout',
+        'finishOnKey',
+        'maxLength',
+        'transcribe',
+        'transcribeCallback',
+        'playBeep'
+    );
+}
+
+class Dial extends Verb
+{
+    protected $valid = array(
+        'action',
+        'method',
+        'timeout',
+        'hangupOnStar',
+        'timeLimit',
+        'callerId'
+    );
+
+    protected $nesting = array(
+        'Number',
+        'Conference'
+    );
+}
+
+class Redirect extends Verb
+{
+    protected $valid = array(
+        'method'
+    );
+}
+
+class Pause extends Verb
+{
+    protected $valid = array(
+        'length'
+    );
+
+    public function __construct(
+        $attr = array()
+    ) {
+        parent::__construct(
+            null,
+            $attr
+        );
+    }
+}
+
+class Hangup extends Verb
+{
+    public function __construct()
+    {
+        parent::__construct(
+            null,
+            array()
+        );
+    }
+}
+
+class Gather extends Verb
+{
+    protected $valid = array(
+        'action',
+        'method',
+        'timeout',
+        'finishOnKey',
+        'numDigits'
+    );
+
+    protected $nesting = array(
+        'Say',
+        'Play',
+        'Pause'
+    );
+
+    public function __construct(
+        $attr = array()
+    ) {
+        parent::__construct(
+            null,
+            $attr
+        );
+    }
+}
+
+class Number extends Verb
+{
+    protected $valid = array(
+        'url',
+        'sendDigits'
+    );
+}
+
+class Conference extends Verb
+{
+    protected $valid = array(
+        'muted',
+        'beep',
+        'startConferenceOnEnter',
+        'endConferenceOnExit',
+        'waitUrl',
+        'waitMethod'
+    );
+}
+
+class Sms extends Verb
+{
+    protected $valid = array(
+        'to',
+        'from',
+        'action',
+        'method',
+        'statusCallback'
+    );
+}
+
+
+/**
+ * ============================================================
+ * Twilio Utilities
+ * ============================================================
+ */
+
+class TwilioUtils
+{
+    protected $AccountSid;
+    protected $AuthToken;
+
+    public function __construct(
+        $id,
+        $token
+    ) {
+        $this->AuthToken = $token;
+        $this->AccountSid = $id;
+    }
+
+    /**
+     * Validate Twilio request signature
+     */
+    public function validateRequest(
+        $expected_signature,
+        $url,
+        $data = array()
+    ) {
+        /*
+         * Sort parameters by key
+         */
+        ksort($data);
+
+        /*
+         * Append key/value pairs
+         */
+        foreach ($data as $key => $value) {
+            $url .= $key . $value;
+        }
+
+        /*
+         * Generate HMAC-SHA1
+         */
+        $calculated_signature = base64_encode(
+            hash_hmac(
+                'sha1',
+                $url,
+                $this->AuthToken,
+                true
+            )
+        );
+
+        return hash_equals(
+            $calculated_signature,
+            $expected_signature
+        );
+    }
+}
 
 
 /* End of file Twilio.php */
+

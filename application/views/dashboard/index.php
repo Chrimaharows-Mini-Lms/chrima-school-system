@@ -61,7 +61,7 @@ if (get_permission('student_birthday_widget', 'is_view') || get_permission('staf
 					<div class="text-center">
 						<ul class="list-inline">
 							<li>
-								<h6 class="text-muted"><i class="fa fa-circle text-blue"></i> <?=translate('income')?></h6>
+								<h6 class="text-muted"><i class="fa fa-circle text-primary"></i> <?=translate('income')?></h6>
 							</li>
 							<li>
 								<h6 class="text-muted"><i class="fa fa-circle text-danger"></i> <?=translate('expense')?></h6>
@@ -555,7 +555,7 @@ if (get_permission('student_birthday_widget', 'is_view') || get_permission('staf
 		legend: {
 			show: false
 		},
-		color: ["#d81b60", "#009efb"],
+		color: ["#d22729", "#89bf42"],
 		series: [{
 			name: 'Transaction',
 			type: 'pie',

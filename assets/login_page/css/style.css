@@ -74,11 +74,6 @@ a:hover, a:focus {
 	border-radius: 12px;
 	height: 100%;
 	width: 100%;
-	background: #e4173b;
-    background: -webkit-linear-gradient(left, #5061ab, #f51414);
-    background: -o-linear-gradient(left, #5061ab, #f51414);
-    background: -moz-linear-gradient(left, #5061ab, #f51414);
-    background: linear-gradient(left, #5061ab, #f51414);
 	opacity: .80;
 	top: 0;
 	left: 0;
@@ -126,7 +121,7 @@ a:hover, a:focus {
     z-index: 1;
     overflow: hidden;
     margin-right: 5px;
-    border: 1px solid #437df3;
+    border: 1px solid #89bf42;
 	-moz-box-shadow: 5px 7px 10px #482c2c;
 	-webkit-box-shadow: 5px 7px 10px #482c2c;
 	box-shadow: 5px 7px 10px #482c2c;
@@ -146,7 +141,7 @@ a:hover, a:focus {
     transform: scale(0);
     -webkit-transition: all .3s ease-in-out;
     transition: all .3s ease-in-out;
-    background: #320f4b;
+    background: #89bf42;
     z-index: -1;
 }
 
@@ -162,7 +157,7 @@ a:hover, a:focus {
     -moz-transform: scale(1);
     -ms-transform: scale(1);
     transform: scale(1);
-    background: #320f4b;
+    background: #89bf42;
 }
 
 /* sign area */
@@ -375,7 +370,7 @@ html.dark .checkbox-replace .i-checks > i {
 	left: 4px;
 	width: 10px;
 	height: 10px;
-	background-color: #ffbd2e;
+	background-color: #89bf42;
 	-webkit-transform: scale(0);
 	-moz-transform: scale(0);
 	-ms-transform: scale(0);
@@ -385,7 +380,7 @@ html.dark .checkbox-replace .i-checks > i {
 }
 
 .checkbox-replace .i-checks input:checked + i {
-	border-color: #ffbd2e;
+	border-color: #89bf42;
 }
 
 html.dark .checkbox-replace .i-checks input:checked + i{
