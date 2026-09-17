@@ -93,7 +93,7 @@ html.dark .header .menu-icon-grid > a {
 }
 
 .header .menu-icon-grid > a:hover {
-    background: #ffbd2e;
+    background: #89bf42;
     color: #fff;
 }
 
@@ -3414,7 +3414,7 @@ html.dark ul.nav-main li a {
 }
 
 ul.nav-main li a i {
-	color: #ffbd2e;
+	color: #89bf42;
 }
 
 html.dark ul.nav-main li a i {
@@ -5152,7 +5152,7 @@ html.dark .checkbox-replace .i-checks > i {
 	left: 4px;
 	width: 10px;
 	height: 10px;
-	background-color: #ffbd2e;
+	background-color: #89bf42;
 	-webkit-transform: scale(0);
 	-moz-transform: scale(0);
 	-ms-transform: scale(0);
@@ -5162,7 +5162,7 @@ html.dark .checkbox-replace .i-checks > i {
 }
 
 .checkbox-replace .i-checks input:checked + i {
-	border-color: #ffbd2e;
+	border-color: #89bf42;
 }
 
 html.dark .checkbox-replace .i-checks input:checked + i{
@@ -6591,7 +6591,7 @@ html.dark .header-menu .header-menubox {
 }
 
 .header-menu .open .hbox ul li a:hover {
-	background: #ffbd2e;
+	background: #89bf42;
 	color: #FFF;
 }
 
@@ -7080,7 +7080,7 @@ html.ie11 .scroll-to-top {
 	background: #f6f6f6;
 	border-radius: 5px 5px 0 0;
 	position: relative;
-    border-bottom: 2px solid #ffbd2e;
+    border-bottom: 2px solid #89bf42;
 }
 
 .panel-actions {
@@ -7699,7 +7699,7 @@ html.dark .tab-content {
 
 .tabs-custom .nav-tabs > li > a:after {
 	content: '';
-	background: #ffbd2e;
+	background: #89bf42;
 	height: 2px;
 	position: absolute;
 	width: 100%;
@@ -7726,7 +7726,7 @@ html.dark .tabs-custom .nav-tabs > li > a:after {
 	border-radius: 0 0 8px 8px;
 	-webkit-transform: translateX(-50%);
 	transform: translateX(-50%);
-	background: #ffbd2e;
+	background: #89bf42;
 }
 
 html.dark .tabs-custom .nav-tabs > li.active > a:before {
@@ -7968,7 +7968,7 @@ html.dark .progress {
 }
 
 .panel-group .panel-accordion .panel .panel-heading {
-	border-bottom: 2px solid #ffbd2e;
+	border-bottom: 2px solid #89bf42;
 	margin-bottom: 0;
 	padding: 9px;
 }
@@ -11902,7 +11902,7 @@ html.dark .dropzone:hover .dz-default span {
 	position: relative;
 }
 .form-group-invisible.focus .control-label-invisible {
-	color: #ffbd2e;
+	color: #89bf42;
 }
 .form-group-invisible .control-label-invisible {
 	bottom: 0;
@@ -13072,7 +13072,7 @@ html.dark .on_answer_box > li a.que_btn {
 }
 
 .on_answer_box > li a.que_btn.active {
-	background-color:  #ffbd2e;
+	background-color:  #89bf42;
 }
 
 html.dark .on_answer_box > li a.que_btn.active {
