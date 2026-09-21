@@ -12,92 +12,23 @@ class Email_model extends CI_Model
     }
 
     public function sentStaffRegisteredAccount($data)
-{
-    // Make sure we have the correct branch/institute
-    $branch_id = !empty($data['branch_id'])
-        ? $data['branch_id']
-        : $this->application_model->get_branch_id();
-
-    // Get the email template for this specific branch
-    $emailTemplate = $this->getEmailTemplates(1, $branch_id);
-
-    if ($emailTemplate['notified'] != 1 || empty($data['email'])) {
-        return false;
-    }
-
-    // Get role name safely
-    $role_name = '';
-    if (!empty($data['user_role'])) {
-        $role_name = get_type_name_by_id('roles', $data['user_role']);
-    }
-
-    // Get institute name
-    $institute_name = get_global_setting('institute_name');
-
-    // If this is a multi-branch installation, use branch name
-    if (!empty($branch_id)) {
-        $branch_name = get_type_name_by_id('branch', $branch_id);
-
-        if (!empty($branch_name)) {
-            $institute_name = $branch_name;
+    {
+        $emailTemplate = $this->getEmailTemplates(1);
+        if ($emailTemplate['notified'] == 1 && !empty($data['email'])) {
+            $role_name = get_type_name_by_id('roles', $data['user_role']);
+            $message = $emailTemplate['template_body'];
+            $message = str_replace("{institute_name}", get_global_setting('institute_name'), $message);
+            $message = str_replace("{name}", $data['name'], $message);
+            $message = str_replace("{login_username}", $data['username'], $message);
+            $message = str_replace("{password}", $data['password'], $message);
+            $message = str_replace("{user_role}", $role_name, $message);
+            $message = str_replace("{login_url}", base_url(), $message);
+            $msgData['recipient'] = $data['email'];
+            $msgData['subject'] = $emailTemplate['subject'];
+            $msgData['message'] = $message;
+            $this->sendEmail($msgData);
         }
     }
-
-    // Get actual values
-    $name     = !empty($data['name']) ? $data['name'] : '';
-    $username = !empty($data['username']) ? $data['username'] : '';
-    $password = !empty($data['password']) ? $data['password'] : '';
-
-    // Start with the template
-    $message = $emailTemplate['template_body'];
-
-    // Replace template variables with REAL values
-    $message = str_replace(
-        '{institute_name}',
-        $institute_name,
-        $message
-    );
-
-    $message = str_replace(
-        '{name}',
-        $name,
-        $message
-    );
-
-    $message = str_replace(
-        '{login_username}',
-        $username,
-        $message
-    );
-
-    $message = str_replace(
-        '{password}',
-        $password,
-        $message
-    );
-
-    $message = str_replace(
-        '{user_role}',
-        $role_name,
-        $message
-    );
-
-    $message = str_replace(
-        '{login_url}',
-        base_url(),
-        $message
-    );
-
-    // Prepare email
-    $msgData = array(
-        'branch_id' => $branch_id,
-        'recipient' => $data['email'],
-        'subject'   => $emailTemplate['subject'],
-        'message'   => $message,
-    );
-
-    return $this->sendEmail($msgData);
-}
 
     public function sentStaffSalaryPay($data)
     {
