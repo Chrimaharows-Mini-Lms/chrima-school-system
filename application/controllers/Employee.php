@@ -124,11 +124,6 @@ class Employee extends Admin_Controller
             if ($this->form_validation->run() !== false) {
                 //save all employee information in the database
                 $post = $this->input->post();
-                
-                // Make sure the email system knows which branch/institute
-                if (empty($post['branch_id'])) {
-                    $post['branch_id'] = $this->application_model->get_branch_id();
-                }
                 $empID = $this->employee_model->save($post);
                 
                 // handle custom fields data
