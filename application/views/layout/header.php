@@ -46,4 +46,11 @@
 			});
 		});
 	</script>
+	<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  // Signal to Telegram that the app is fully loaded
+  window.Telegram.WebApp.ready();
+  // Expand the webview to full height (optional)
+  window.Telegram.WebApp.expand();
+</script>
 </head>
