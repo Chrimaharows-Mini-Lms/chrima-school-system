@@ -1,0 +1,4 @@
+<style>body{font-family:dejavusans;font-size:9pt}.title{text-align:center}.table{border-collapse:collapse;width:100%}.table th,.table td{border:1px solid #555;padding:4px}.table th{background:#eee}</style>
+<h2 class="title">Annual Student Results & Ranking</h2><p class="title"><?=html_escape($class_name.' / '.$section_name)?></p>
+<table class="table"><thead><tr><th>Rank</th><th>Student</th><?php foreach($terms as $t): ?><th><?=html_escape($t['name'])?><br><small>Term Average</small></th><?php endforeach; ?><th>Annual Average</th></tr></thead><tbody>
+<?php foreach($students as $row): ?><tr><td><?=$row['rank']?></td><td><?=html_escape($row['student']['first_name'].' '.$row['student']['last_name'])?><br><?=html_escape($row['student']['register_no'])?></td><?php foreach($terms as $t): ?><td><?=number_format($row['term_averages'][$t['id']],2)?></td><?php endforeach; ?><td><?=number_format($row['annual_average'],2)?></td></tr><?php endforeach; ?></tbody></table>

@@ -51,17 +51,17 @@
 											<li><span class="text-weight-semibold"><?=translate('subject')?></span> : <?=$row['subject_name']?></li>
 											<li><span class="text-weight-semibold"><?=translate('class')?></span> : <?=$row['class_name']?></li>
 											<li><span class="text-weight-semibold"><?=translate('section')?></span> : <?=$row['section_name']?></li>
-											<li><span class="text-weight-semibold"><?=translate('documents')?></span> : <a href="<?=base_url('homework/download/' . $row['id'])?>" style="display: initial;" class="btn btn-default btn-circle icon" data-toggle="tooltip" data-original-title="<?=translate('download')?>"><i class="fas fa-cloud-download-alt"></i></a></li>
+											<li><span class="text-weight-semibold"><?=translate('documents')?></span> : <a href="<?=base_url('userrole/downloadHomework/' . $row['id'])?>" style="display: initial;" class="btn btn-default btn-circle icon" data-toggle="tooltip" data-original-title="<?=translate('download')?>"><i class="fas fa-cloud-download-alt"></i></a></li>
 										</ul>
 									<?php if (!empty($row['enc_name'])) { ?>
 										<ul class="nav nav-stacked mt-md">
-											<li><span class="text-weight-semibold"><?=translate('submitted_file')?></span> : <a href="<?=base_url('homework/download_submitted?file=' . $row['enc_name'])?>" style="display: initial;" class="btn btn-default btn-circle icon" data-toggle="tooltip" data-original-title="<?=translate('download')?>"><i class="fas fa-cloud-download-alt"></i></a></li>
+											<li><span class="text-weight-semibold"><?=translate('submitted_file')?></span> : <a href="<?=base_url('userrole/downloadSubmittedHomework?file=' . $row['enc_name'])?>" style="display: initial;" class="btn btn-default btn-circle icon" data-toggle="tooltip" data-original-title="<?=translate('download')?>"><i class="fas fa-cloud-download-alt"></i></a></li>
 										</ul>
 									<?php 
 										}
 										$date_of_submission = strtotime($row['date_of_submission']);
 										$today = strtotime(date('Y-m-d'));
-										if($row['ev_status'] !== 'c' && $date_of_submission >= $today){
+										if(is_student_loggedin() && $row['ev_status'] !== 'c' && $date_of_submission >= $today){
 										?>
 										<ul class="nav nav-stacked mt-md">
 											<li><span class="text-weight-semibold"><?=translate('assignment')?></span> : <button onclick="showModal('<?php echo $row['id']?>')" class="btn btn-default btn-sm"><i class="fas fa-upload"></i> <?=translate('upload')?></button></li>

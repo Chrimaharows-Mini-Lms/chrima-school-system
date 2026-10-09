@@ -124,6 +124,12 @@ if ((is_parent_loggedin() && !empty(get_activeChildren_id())) || is_student_logg
                                     <i class="fas fa-marker"></i><span><?=translate('report_card')?></span>
                                 </a>
                             </li>
+                            <!-- gradebook term results -->
+                            <li class="<?php if ($sub_page == 'userrole/grades') echo 'nav-active'; ?>">
+                                <a href="<?=base_url('userrole/grades')?>">
+                                    <i class="fas fa-chart-line"></i><span>Grades &amp; Results</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 <?php if (is_student_loggedin()) { ?>

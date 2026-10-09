@@ -1,4 +1,7 @@
 <?php $active = html_escape($this->input->get('type'));?>
+<?php if (is_parent_loggedin()): ?>
+<?php $this->load->view('communication/'. $inside_subview . '.php'); ?>
+<?php else: ?>
 <div class="row">
 	<div class="col-md-3">
 		<div class="panel mailbox">
@@ -38,3 +41,4 @@
 		<?php $this->load->view('communication/'. $inside_subview . '.php') ?>
 	</div>
 </div>
+<?php endif; ?>

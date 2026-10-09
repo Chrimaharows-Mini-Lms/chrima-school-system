@@ -21,6 +21,7 @@ class Userrole extends User_Controller
         $this->load->model('leave_model');
         $this->load->model('fees_model');
         $this->load->model('exam_model');
+        $this->load->model('gradebook_model');
     }
 
     public function index()
@@ -250,14 +251,28 @@ class Userrole extends User_Controller
     public function exam_schedule()
     {
         $stu = $this->userrole_model->getStudentDetails();
+        if (empty($stu)) {
+            $this->data['student'] = array();
+            $this->data['exams'] = array();
+            $this->data['title'] = translate('exam') . " " . translate('schedule');
+            $this->data['sub_page'] = 'userrole/exam_schedule';
+            $this->data['main_menu'] = 'exam';
+            $this->load->view('layout/index', $this->data);
+            return;
+        }
         $this->data['student'] = $stu;
-        $this->db->select('*');
+        // One row per exam is enough for the schedule list; the detail modal
+        // loads all subjects/times for that exam.  Do not GROUP BY exam_id
+        // while selecting timetable_exam.* because ONLY_FULL_GROUP_BY rejects
+        // that query on modern MySQL.
+        $this->db->distinct();
+        $this->db->select('timetable_exam.exam_id,timetable_exam.class_id,timetable_exam.section_id');
         $this->db->from('timetable_exam');
-        $this->db->where('class_id', $stu['class_id']);
-        $this->db->where('section_id', $stu['section_id']);
-        $this->db->where('session_id', get_session_id());
-        $this->db->group_by('exam_id');
-        $this->db->order_by('exam_id', 'asc');
+        $this->db->where('timetable_exam.branch_id', $stu['branch_id']);
+        $this->db->where('timetable_exam.class_id', $stu['class_id']);
+        $this->db->where('timetable_exam.section_id', $stu['section_id']);
+        $this->db->where('timetable_exam.session_id', get_session_id());
+        $this->db->order_by('timetable_exam.exam_id', 'asc');
         $results = $this->db->get()->result_array();
         $this->data['exams'] = $results;
         $this->data['title'] = translate('exam') . " " . translate('schedule');
@@ -413,6 +428,23 @@ class Userrole extends User_Controller
     }
 
     /* invoice user interface with information are controlled here */
+    public function grades()
+    {
+        if (!is_parent_loggedin() && !is_student_loggedin()) access_denied();
+        $studentID = is_parent_loggedin() ? get_activeChildren_id() : get_loggedin_user_id();
+        if (empty($studentID)) { redirect(base_url('parents/my_children')); return; }
+        $student = $this->userrole_model->getStudentDetails();
+        $terms = $this->gradebook_model->getTerms();
+        $reports = array();
+        foreach ($terms as $term) {
+            $report = $this->gradebook_model->getStudentTermGrade($student['branch_id'], $studentID, $term['id']);
+            if ($report) $reports[] = $report;
+        }
+        $this->data['student']=$student; $this->data['grade_reports']=$reports;
+        $this->data['title']='My Grades'; $this->data['main_menu']='exam'; $this->data['sub_page']='userrole/grades';
+        $this->load->view('layout/index',$this->data);
+    }
+
     public function report_card()
     {
         $this->data['stu'] = $this->userrole_model->getStudentDetails();
@@ -425,7 +457,12 @@ class Userrole extends User_Controller
     public function homework()
     {
         $stu = $this->userrole_model->getStudentDetails();
-        $this->data['homeworklist'] = $this->userrole_model->getHomeworkList($stu['student_id']);
+        // A student/parent can temporarily have no enrollment in the selected
+        // academic session.  Render an empty list instead of throwing an
+        // application error on the portal.
+        $this->data['homeworklist'] = !empty($stu['student_id'])
+            ? $this->userrole_model->getHomeworkList($stu['student_id'])
+            : array();
         $this->data['title'] = translate('homework');
         $this->data['headerelements'] = array(
             'css' => array(
@@ -440,17 +477,77 @@ class Userrole extends User_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function getHomeworkAssignment()
+    /**
+     * Download homework document for the currently authenticated student/parent child.
+     */
+    public function downloadHomework($id = '')
     {
-        if (!is_student_loggedin()) {
+        $studentID = is_student_loggedin() ? get_loggedin_user_id() : (is_parent_loggedin() ? get_activeChildren_id() : 0);
+        if (empty($studentID) || empty($id)) {
             access_denied();
         }
+
+        $homework = $this->db->select('homework.*')
+            ->from('homework')
+            ->join('enroll as e', 'e.class_id = homework.class_id AND e.section_id = homework.section_id AND e.session_id = homework.session_id AND e.branch_id = homework.branch_id', 'inner')
+            ->where('homework.id', $id)
+            ->where('e.student_id', $studentID)
+            ->where('homework.session_id', get_session_id())
+            ->where('homework.status', 0)
+            ->get()->row_array();
+
+        if (empty($homework) || empty($homework['document'])) {
+            show_404();
+        }
+
+        $path = FCPATH . 'uploads/attachments/homework/' . $homework['id'] . '.' . pathinfo($homework['document'], PATHINFO_EXTENSION);
+        if (!is_file($path)) {
+            show_404();
+        }
+        $this->load->helper('download');
+        force_download($homework['document'], file_get_contents($path));
+    }
+
+    /**
+     * Download a submitted homework file belonging to the currently authenticated student/parent child.
+     */
+    public function downloadSubmittedHomework()
+    {
+        $studentID = is_student_loggedin() ? get_loggedin_user_id() : (is_parent_loggedin() ? get_activeChildren_id() : 0);
+        $encryptName = urldecode($this->input->get('file'));
+        if (empty($studentID) || !preg_match('/^[^.][-a-z0-9_.]+[a-z]$/i', $encryptName)) {
+            access_denied();
+        }
+
+        $row = $this->db->select('hs.file_name,hs.enc_name')
+            ->from('homework_submit as hs')
+            ->join('homework as h', 'h.id = hs.homework_id', 'inner')
+            ->where('hs.enc_name', $encryptName)
+            ->where('hs.student_id', $studentID)
+            ->where('h.session_id', get_session_id())
+            ->get()->row_array();
+
+        if (empty($row)) {
+            access_denied();
+        }
+        $path = FCPATH . 'uploads/attachments/homework_submit/' . $row['enc_name'];
+        if (!is_file($path)) {
+            show_404();
+        }
+        $this->load->helper('download');
+        force_download($row['file_name'], file_get_contents($path));
+    }
+
+    public function getHomeworkAssignment()
+    {
         $id = $this->input->post('id');
-        $r = $this->db->where(array('homework_id' => $id, 'student_id' => get_loggedin_user_id()))->get('homework_submit')->row_array();
+        $studentID = is_student_loggedin() ? get_loggedin_user_id() : (is_parent_loggedin() ? get_activeChildren_id() : 0);
+        if (empty($studentID)) access_denied();
+        $r = $this->db->where(array('homework_id' => $id, 'student_id' => $studentID))->get('homework_submit')->row_array();
         $array = array(
-            'id' => $r['id'],
-            'message' => $r['message'],
-            'file_name' => $r['enc_name'],
+            'id' => $r['id'] ?? '',
+            'message' => $r['message'] ?? '',
+            'file_name' => $r['enc_name'] ?? '',
         );
         echo json_encode($array);
     }
@@ -498,6 +595,7 @@ class Userrole extends User_Controller
 
     public function assignment_upload()
     {
+        if (!is_student_loggedin()) access_denied();
         if ($_POST) {
             $this->homework_validation();
             if ($this->form_validation->run() !== false) {

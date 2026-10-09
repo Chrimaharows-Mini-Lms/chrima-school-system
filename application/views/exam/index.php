@@ -22,6 +22,7 @@
 							<th><?=translate('exam_name')?></th>
 							<th><?=translate('exam_type')?></th>
 							<th><?=translate('term')?></th>
+							<th>Gradebook Weight</th>
 							<th><?=translate('mark_distribution')?></th>
 							<th><?=translate('remarks')?></th>
 							<th><?=translate('action')?></th>
@@ -45,6 +46,7 @@
 							}
 							 ?></td>
 							<td><?php echo (empty($row['term_id']) ? 'N/A' : get_type_name_by_id('exam_term', $row['term_id'])); ?></td>
+							<td><?php echo isset($row['gradebook_weight']) && $row['gradebook_weight'] !== null ? number_format((float)$row['gradebook_weight'], 2) . '%' : 'Legacy weight'; ?></td>
 							<td><?php
 								$distribution = json_decode($row['mark_distribution'], true);
 								if (!empty($distribution)) {
@@ -102,6 +104,21 @@
 									echo form_dropdown("term_id", $array, set_value('term_id'), "class='form-control' id='term_id'
 									data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 								?>
+								<span class="error"></span>
+							</div>
+						</div>
+						<div class="form-group">
+							<label class="col-md-3 control-label">Academic Term / Semester</label>
+							<div class="col-md-6">
+								<?php $gt = array('' => 'Select academic term'); foreach ($grading_terms as $t) { $gt[$t['id']] = $t['name']; } echo form_dropdown('grading_term_id', $gt, set_value('grading_term_id'), "class='form-control' data-plugin-selectTwo data-width='100%'"); ?>
+								<span class="error"></span>
+							</div>
+						</div>
+						<div class="form-group">
+							<label class="col-md-3 control-label">Gradebook Weight (%) <span class="required">*</span></label>
+							<div class="col-md-6">
+								<input type="number" class="form-control" name="gradebook_weight" min="0.01" max="100" step="0.01" value="<?=html_escape(set_value('gradebook_weight', ''))?>" required />
+								<p class="text-muted">Percentage of the selected academic term total. Example: 20 means this exam contributes up to 20/100 points.</p>
 								<span class="error"></span>
 							</div>
 						</div>

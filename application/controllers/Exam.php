@@ -20,6 +20,7 @@ class Exam extends Admin_Controller
         $this->load->model('exam_model');
         $this->load->model('subject_model');
         $this->load->model('sms_model');
+        $this->load->model('gradebook_model');
     }
 
     /* exam form validation rules */
@@ -31,6 +32,10 @@ class Exam extends Admin_Controller
         $this->form_validation->set_rules('name', translate('name'), 'trim|required');
         $this->form_validation->set_rules('type_id', translate('exam_type'), 'trim|required');
         $this->form_validation->set_rules('mark_distribution[]', translate('mark_distribution'), 'trim|required');
+        if ($this->gradebook_model->getTerms()) {
+            $this->form_validation->set_rules('grading_term_id', 'Academic Term / Semester', 'trim|required|integer');
+            $this->form_validation->set_rules('gradebook_weight', 'Gradebook Weight (%)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]');
+        }
     }
 
     public function index()
@@ -61,6 +66,7 @@ class Exam extends Admin_Controller
 
         $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['examlist'] = $this->exam_model->getExamList();
+        $this->data['grading_terms'] = $this->gradebook_model->getTerms();
         $this->data['title'] = translate('exam_list');
         $this->data['sub_page'] = 'exam/index';
         $this->data['main_menu'] = 'exam';
@@ -91,6 +97,7 @@ class Exam extends Admin_Controller
 
         $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['exam'] = $this->app_lib->getTable('exam', array('t.id' => $id), true);
+        $this->data['grading_terms'] = $this->gradebook_model->getTerms();
         $this->data['title'] = translate('exam_list');
         $this->data['sub_page'] = 'exam/edit';
         $this->data['main_menu'] = 'exam';
@@ -533,6 +540,7 @@ class Exam extends Admin_Controller
             $examID = $this->input->post('exam_id');
             $classID = $this->input->post('class_id');
             $sectionID = $this->input->post('section_id');
+            $this->db->distinct();
             $this->db->select('e.roll,s.*,c.name as category');
             $this->db->from('enroll as e');
             $this->db->join('student as s', 'e.student_id = s.id', 'inner');
@@ -543,7 +551,8 @@ class Exam extends Admin_Controller
             $this->db->where('e.section_id', $sectionID);
             $this->db->where('e.branch_id', $branchID);
             $this->db->where('m.exam_id', $examID);
-            $this->db->group_by('m.student_id');
+            // Each student may have multiple subject marks, but the marksheet
+            // student selector needs only one row per student.
             $this->data['student'] = $this->db->get()->result_array();
         }
 

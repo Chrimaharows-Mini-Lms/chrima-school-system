@@ -156,6 +156,15 @@ class Classes extends Admin_Controller
         if (get_permission('assign_class_teacher', 'is_edit')) {
             $allocation_id = $this->input->post('id');
             $this->data['data'] = $this->app_lib->get_table('teacher_allocation', $allocation_id, true);
+            if (!empty($this->data['data'])) {
+                $this->data['teachers'] = $this->classes_model->getTeacherAllocationByClassSection(
+                    $this->data['data']['class_id'],
+                    $this->data['data']['section_id'],
+                    $this->data['data']['branch_id']
+                );
+            } else {
+                $this->data['teachers'] = array();
+            }
             $this->load->view('classes/tallocation_modalEdit', $this->data);
         }
     }
@@ -167,13 +176,38 @@ class Classes extends Admin_Controller
                 $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
             }
             $this->form_validation->set_rules('class_id', translate('class'), 'required');
-            $this->form_validation->set_rules('section_id', translate('section'), 'required|callback_unique_sectionID');
-            $this->form_validation->set_rules('staff_id', translate('teacher'), 'required|callback_unique_teacherID');
+            $this->form_validation->set_rules('section_id', translate('section'), 'required');
+            $this->form_validation->set_rules('staff_id[]', translate('teacher'), 'required');
+
+            $teacher_ids = $this->input->post('staff_id');
+            $teacher_ids = is_array($teacher_ids) ? array_values(array_unique(array_filter($teacher_ids))) : array();
+
+            if (count($teacher_ids) < 1 || count($teacher_ids) > 2) {
+                $error = array('staff_id' => 'Please select one or two teachers. A class section can have a maximum of two class teachers.');
+                $array = array('status' => 'fail', 'error' => $error);
+                echo json_encode($array);
+                return;
+            }
+
             if ($this->form_validation->run() !== false) {
                 $post = $this->input->post();
-                $this->classes_model->teacherAllocationSave($post);
-                $url = base_url('classes/teacher_allocation');
-                $array = array('status' => 'success', 'url' => $url);
+                $post['staff_id'] = $teacher_ids;
+
+                // A teacher cannot be assigned twice to the same class section.
+                if (count($teacher_ids) !== count(array_unique($teacher_ids))) {
+                    $error = array('staff_id' => 'The same teacher cannot be assigned twice to the same class section.');
+                    $array = array('status' => 'fail', 'error' => $error);
+                    echo json_encode($array);
+                    return;
+                }
+
+                $saved = $this->classes_model->teacherAllocationSave($post);
+                if (!$saved) {
+                    $array = array('status' => 'fail', 'error' => array('staff_id' => 'A class section can have a maximum of two different teachers, and all selected users must be teachers in this branch.'));
+                } else {
+                    $url = base_url('classes/teacher_allocation');
+                    $array = array('status' => 'success', 'url' => $url);
+                }
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
@@ -193,47 +227,5 @@ class Classes extends Admin_Controller
         }
     }
 
-    // validate here, if the check teacher allocated for this class
-    public function unique_teacherID($teacher_id)
-    {
-        if (!empty($teacher_id)) {
-            $classID = $this->input->post('class_id');
-            $sectionID = $this->input->post('section_id');
-            $allocationID = $this->input->post('allocation_id');
-            if (!empty($allocationID)) {
-                $this->db->where_not_in('id', $allocationID);
-            }
-            $this->db->where('teacher_id', $teacher_id);
-            $this->db->where('class_id', $classID);
-            $this->db->where('section_id', $sectionID);
-            $query = $this->db->get('teacher_allocation');
-            if ($query->num_rows() > 0) {
-                $this->form_validation->set_message("unique_teacherID", translate('class_teachers_are_already_allocated_for_this_class'));
-                return false;
-            } else {
-                return true;
-            }
-        }
-    }
 
-    // validate here, if the check teacher allocated for this class
-    public function unique_sectionID($sectionID)
-    {
-        if (!empty($sectionID)) {
-            $classID = $this->input->post('class_id');
-            $allocationID = $this->input->post('allocation_id');
-            if (!empty($allocationID)) {
-                $this->db->where_not_in('id', $allocationID);
-            }
-            $this->db->where('class_id', $classID);
-            $this->db->where('section_id', $sectionID);
-            $query = $this->db->get('teacher_allocation');
-            if ($query->num_rows() > 0) {
-                $this->form_validation->set_message("unique_sectionID", translate('this_class_teacher_already_assigned'));
-                return false;
-            } else {
-                return true;
-            }
-        }
-    }
 }

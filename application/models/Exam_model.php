@@ -30,6 +30,10 @@ class Exam_model extends CI_Model
             'name' => $data['name'],
             'branch_id' => $this->application_model->get_branch_id(),
             'term_id' => $data['term_id'],
+            'grading_term_id' => !empty($data['grading_term_id']) ? (int)$data['grading_term_id'] : null,
+            // Percentage contribution of this exam to the selected academic term's gradebook.
+            'gradebook_weight' => isset($data['gradebook_weight']) && is_numeric($data['gradebook_weight'])
+                ? max(0, min(100, (float)$data['gradebook_weight'])) : null,
             'type_id' => $data['type_id'],
             'mark_distribution' => json_encode($data['mark_distribution']),
             'remark' => $data['remark'],
