@@ -289,6 +289,7 @@ class Timetable extends Admin_Controller
                     $this->db->where('section_id', $sectionID);
                     $this->db->where('subject_id', $value['subject_id']);
                     $this->db->where('session_id', get_session_id());
+                    $this->db->where('branch_id', $branchID);
                     $q = $this->db->get('timetable_exam');
                     if ($q->num_rows() > 0) {
                         $result = $q->row_array();
@@ -330,7 +331,21 @@ class Timetable extends Admin_Controller
         $this->data['exam_id'] = $examID;
         $this->data['class_id'] = $classID;
         $this->data['section_id'] = $sectionID;
-        $this->data['timetables'] = $this->timetable_model->getExamTimetableByModal($examID, $classID, $sectionID);
+        // Students/parents may only view the selected student's own class/section.
+        // Staff/admin users may view any class allowed by their normal branch scope.
+        $branchID = get_loggedin_branch_id();
+        if (is_parent_loggedin() || is_student_loggedin()) {
+            $studentID = is_parent_loggedin() ? get_activeChildren_id() : get_loggedin_user_id();
+            $child = $this->db->select('e.class_id,e.section_id,e.branch_id')
+                ->from('enroll as e')
+                ->where(array('e.student_id' => $studentID, 'e.session_id' => get_session_id()))
+                ->get()->row_array();
+            if (empty($child) || (int)$child['class_id'] !== (int)$classID || (int)$child['section_id'] !== (int)$sectionID) {
+                access_denied();
+            }
+            $branchID = $child['branch_id'];
+        }
+        $this->data['timetables'] = $this->timetable_model->getExamTimetableByModal($examID, $classID, $sectionID, $branchID);
         $this->load->view('timetable/examTimetableM', $this->data);
     }
 

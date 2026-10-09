@@ -911,6 +911,25 @@
                                         </a>
                                     </li>
                                     <?php } ?>
+                                    <?php if(get_permission('exam_mark', 'is_view')) { ?>
+                                    <li class="<?php if ($sub_page == 'gradebook/index') echo 'nav-active';?>">
+                                        <a href="<?=base_url('gradebook')?>">
+                                            <span>Gradebook</span>
+                                        </a>
+                                    </li>
+                                    <li class="<?php if ($sub_page == 'gradebook/report') echo 'nav-active';?>">
+                                        <a href="<?=base_url('gradebook/report')?>">
+                                            <span>Term Results & Ranking</span>
+                                        </a>
+                                    </li>
+                                    <?php if (is_superadmin_loggedin()) { ?>
+                                    <li class="<?php if ($sub_page == 'gradebook/terms') echo 'nav-active';?>">
+                                        <a href="<?=base_url('gradebook/terms')?>">
+                                            <span>Academic Terms / Semesters</span>
+                                        </a>
+                                    </li>
+                                    <?php } ?>
+                                    <?php } ?>
                                 </ul>
                             </li>
                             <?php } ?>

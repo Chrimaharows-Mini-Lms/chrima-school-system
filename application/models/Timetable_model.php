@@ -71,15 +71,16 @@ class Timetable_model extends MY_Model
     public function getExamTimetableList($classID, $sectionID, $branchID)
     {
         $sessionID = get_session_id();
-        $this->db->select('t.*,b.name as branch_name');
+        // The list needs only the exam/class/section identifiers.  Selecting
+        // t.* and grouping only by exam_id breaks under ONLY_FULL_GROUP_BY.
+        $this->db->distinct();
+        $this->db->select('t.exam_id,t.class_id,t.section_id,t.branch_id,t.session_id');
         $this->db->from('timetable_exam as t');
-        $this->db->join('branch as b', 'b.id = t.branch_id', 'left');
         $this->db->where('t.branch_id', $branchID);
         $this->db->where('t.class_id', $classID);
         $this->db->where('t.section_id', $sectionID);
         $this->db->where('t.session_id', $sessionID);
-        $this->db->order_by('t.id', 'asc');
-        $this->db->group_by('t.exam_id');
+        $this->db->order_by('t.exam_id', 'asc');
         return $this->db->get()->result_array();
     }
 
@@ -88,7 +89,7 @@ class Timetable_model extends MY_Model
         $sessionID  = get_session_id();
         $sql = "SELECT sa.*, s.name as subject_name, te.time_start, te.time_end, te.hall_id, te.exam_date, te.mark_distribution FROM subject_assign as sa
         LEFT JOIN subject as s ON s.id = sa.subject_id LEFT JOIN timetable_exam as te ON te.class_id = sa.class_id and te.section_id = sa.section_id and
-        te.subject_id = sa.subject_id and te.session_id = sa.session_id and te.exam_id = " . $this->db->escape($examID) . " WHERE sa.class_id = " .
+        te.subject_id = sa.subject_id and te.session_id = sa.session_id and te.branch_id = sa.branch_id and te.exam_id = " . $this->db->escape($examID) . " WHERE sa.class_id = " .
         $this->db->escape($classID) . " AND sa.section_id = " . $this->db->escape($sectionID) . " AND sa.branch_id = " .
         $this->db->escape($branchID) . " AND sa.session_id = " . $this->db->escape($sessionID);
         $query = $this->db->query($sql);

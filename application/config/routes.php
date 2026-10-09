@@ -94,6 +94,8 @@ $route['live_class'] = 'live_class/index';
 $route['exam'] = 'exam/index';
 $route['profile'] = 'profile/index';
 $route['sections'] = 'sections/index';
+$route['gradebook'] = 'gradebook/index';
+$route['gradebook/(:any)'] = 'gradebook/$1';
 
 $route['authentication'] = 'authentication/index';
 $route['home'] = 'home/index';

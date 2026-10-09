@@ -40,9 +40,9 @@
 						<label class="control-label"><?=translate('class_teacher')?> <span class="required">*</span></label>
 						<?php
 							$arrayTeacher = $this->app_lib->getStaffList($branch_id, 3);
-							echo form_dropdown("staff_id", $arrayTeacher, set_value('staff_id'), "class='form-control' id='staff_id'
-							data-plugin-selectTwo data-width='100%' ");
+							echo form_dropdown("staff_id[]", $arrayTeacher, set_value('staff_id'), "class='form-control' id='staff_id' multiple data-plugin-selectTwo data-width='100%' ");
 						?>
+						<small class="text-muted">Select one or two teachers for this class section.</small>
 						<span class="error"></span>
 					</div>
 				</div>

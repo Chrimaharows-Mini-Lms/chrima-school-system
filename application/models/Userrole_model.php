@@ -110,19 +110,71 @@ class Userrole_model extends MY_Model
 
     public function getHomeworkList($studentID)
     {
-        $this->db->select('homework.*,CONCAT_WS(" ",s.first_name, s.last_name) as fullname,s.register_no,e.student_id, e.roll,subject.name as subject_name,class.name as class_name,section.name as section_name,he.id as ev_id,he.status as ev_status,he.remark as ev_remarks,he.rank,hs.message,hs.enc_name,hs.file_name');
+        /*
+         * Homework is session-scoped, not term-scoped.  Keep the session
+         * restriction here so adding academic terms does not hide existing
+         * assignments.
+         *
+         * The old query grouped by homework.id while selecting many other
+         * columns.  That fails on MySQL installations using
+         * ONLY_FULL_GROUP_BY.  Use the latest evaluation/submission row per
+         * student/homework instead of relying on an invalid GROUP BY.
+         */
+        $this->db->select('homework.*,CONCAT_WS(" ",s.first_name, s.last_name) as fullname,s.register_no,e.student_id,e.roll,subject.name as subject_name,class.name as class_name,section.name as section_name,he.id as ev_id,he.status as ev_status,he.remark as ev_remarks,he.rank,hs.message,hs.enc_name,hs.file_name');
         $this->db->from('homework');
-        $this->db->join('enroll as e', 'e.class_id=homework.class_id and e.section_id = homework.section_id and e.session_id = homework.session_id', 'inner');
+        $this->db->join(
+            'enroll as e',
+            'e.class_id = homework.class_id
+             AND e.section_id = homework.section_id
+             AND e.session_id = homework.session_id
+             AND e.branch_id = homework.branch_id',
+            'inner'
+        );
         $this->db->join('student as s', 'e.student_id = s.id', 'inner');
-        $this->db->join('homework_evaluation as he', 'he.homework_id = homework.id and he.student_id = e.student_id', 'left');
+
+        // Latest evaluation for this homework/student.
+        $this->db->join(
+            '(SELECT he1.*
+                FROM homework_evaluation he1
+                INNER JOIN (
+                    SELECT homework_id, student_id, MAX(id) AS max_id
+                    FROM homework_evaluation
+                    GROUP BY homework_id, student_id
+                ) he2
+                    ON he2.max_id = he1.id
+                   AND he2.homework_id = he1.homework_id
+                   AND he2.student_id = he1.student_id
+             ) he',
+            'he.homework_id = homework.id AND he.student_id = e.student_id',
+            'left',
+            false
+        );
+
         $this->db->join('subject', 'subject.id = homework.subject_id', 'left');
-        $this->db->join('homework_submit as hs', 'hs.homework_id = homework.id and hs.student_id = e.student_id', 'left');
+
+        // Latest submission for this homework/student.
+        $this->db->join(
+            '(SELECT hs1.*
+                FROM homework_submit hs1
+                INNER JOIN (
+                    SELECT homework_id, student_id, MAX(id) AS max_id
+                    FROM homework_submit
+                    GROUP BY homework_id, student_id
+                ) hs2
+                    ON hs2.max_id = hs1.id
+                   AND hs2.homework_id = hs1.homework_id
+                   AND hs2.student_id = hs1.student_id
+             ) hs',
+            'hs.homework_id = homework.id AND hs.student_id = e.student_id',
+            'left',
+            false
+        );
+
         $this->db->join('class', 'class.id = homework.class_id', 'left');
         $this->db->join('section', 'section.id = homework.section_id', 'left');
         $this->db->where('e.student_id', $studentID);
         $this->db->where('homework.status', 0);
         $this->db->where('homework.session_id', get_session_id());
-        $this->db->group_by('homework.id');
         $this->db->order_by('homework.id', 'desc');
         return $this->db->get()->result_array();
     }

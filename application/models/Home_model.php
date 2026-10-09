@@ -198,7 +198,8 @@ class Home_model extends MY_Model
     public function getExamList($branchID = '', $classID = '', $sectionID = '')
     {
         $sessionID = get_session_id();
-        $this->db->select('exam.id,exam.name,exam.term_id');
+        $this->db->distinct();
+        $this->db->select('exam.id,exam.name,exam.term_id,exam.grading_term_id');
         $this->db->from('timetable_exam');
         $this->db->join('exam', 'exam.id = timetable_exam.exam_id', 'left');
         if (!empty($classID)) {
@@ -211,7 +212,8 @@ class Home_model extends MY_Model
 
         $this->db->where('timetable_exam.branch_id', $branchID);
         $this->db->where('timetable_exam.session_id', $sessionID);
-        $this->db->group_by('timetable_exam.exam_id');
+        // DISTINCT keeps one exam per class/section without an invalid
+        // GROUP BY on non-grouped exam columns.
         $result = $this->db->get()->result_array();
         return $result;
     }
