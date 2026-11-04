@@ -71,6 +71,7 @@ class Subject_model extends MY_Model
                     $this->db->join('section', 'section.id = timetable_class.section_id', 'left');
                     $this->db->join('subject', 'subject.id = timetable_class.subject_id', 'left');
                     $this->db->where(array('timetable_class.teacher_id' => get_loggedin_user_id(), 'timetable_class.session_id' => get_session_id(), 'timetable_class.class_id' => $classID, 'timetable_class.section_id' => $sectionID));
+                    $this->db->where('timetable_class.subject_id !=', 0);
                     $this->db->group_by('timetable_class.subject_id');
                     $query = $this->db->get();
                 }
@@ -83,6 +84,34 @@ class Subject_model extends MY_Model
         return $query;
     }
 
+
+    /**
+     * Server-side check: may the logged-in user enter marks for this
+     * class/section/subject? Non-teachers (and unrestricted branches) are allowed.
+     * Teachers: class teacher of the section (all subjects) OR scheduled
+     * in the timetable for that exact class + section + subject.
+     */
+    public function teacherCanAccessSubject($classID, $sectionID, $subjectID)
+    {
+        if (loggedin_role_id() != 3) {
+            return true;
+        }
+        $restricted = $this->getSingle('branch', get_loggedin_branch_id(), true)->teacher_restricted;
+        if ($restricted != 1) {
+            return true;
+        }
+        if ($this->getClassTeacherByClassSection($classID, $sectionID)) {
+            return true;
+        }
+        $this->db->where(array(
+            'teacher_id' => get_loggedin_user_id(),
+            'session_id' => get_session_id(),
+            'class_id' => $classID,
+            'section_id' => $sectionID,
+            'subject_id' => $subjectID,
+        ));
+        return $this->db->count_all_results('timetable_class') > 0;
+    }
 
     public function getSubjectList($classID = '', $sectionID = '')
     {

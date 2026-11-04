@@ -203,15 +203,7 @@ class App_lib
         } else {
             $getClassTeacher = $this->getClassTeacher($class_id);
             if (is_array($getClassTeacher)) {
-                $result = $getClassTeacher;
-                if (count($result) == 0) {
-                    $this->CI->db->select('timetable_class.section_id,section.name');
-                    $this->CI->db->from('timetable_class');
-                    $this->CI->db->join('section', 'section.id = timetable_class.section_id', 'left');
-                    $this->CI->db->where(array('timetable_class.teacher_id' => get_loggedin_user_id(), 'timetable_class.session_id' => get_session_id(), 'timetable_class.class_id' => $class_id));
-                    $this->CI->db->group_by('timetable_class.section_id'); 
-                    $result = $this->CI->db->get()->result_array();
-                }
+                $result = $this->getTeacherSectionsByClass($class_id, $getClassTeacher);
             } else {
                 $this->CI->db->where('class_id', $class_id);
                 $result = $this->CI->db->get('sections_allocation')->result_array(); 
@@ -470,6 +462,41 @@ class App_lib
         $name = str_replace('_', ' ', $name);
         $name = str_replace('St ', 'St. ', $name);
         return $name;
+    }
+
+    /**
+     * Sections of a class that the logged-in teacher may work with:
+     * sections where the teacher is class teacher PLUS sections where the
+     * teacher has a class schedule (timetable) entry.
+     */
+    public function getTeacherSectionsByClass($classID, $classTeacherRows = null)
+    {
+        if ($classTeacherRows === null) {
+            $classTeacherRows = $this->getClassTeacher($classID);
+            if (!is_array($classTeacherRows)) {
+                $classTeacherRows = array();
+            }
+        }
+        $this->CI->db->select('timetable_class.section_id,section.name as section_name');
+        $this->CI->db->from('timetable_class');
+        $this->CI->db->join('section', 'section.id = timetable_class.section_id', 'left');
+        $this->CI->db->where(array(
+            'timetable_class.teacher_id' => get_loggedin_user_id(),
+            'timetable_class.session_id' => get_session_id(),
+            'timetable_class.class_id' => $classID,
+        ));
+        $this->CI->db->where('timetable_class.section_id !=', 0);
+        $this->CI->db->group_by('timetable_class.section_id');
+        $scheduled = $this->CI->db->get()->result_array();
+
+        $merged = array();
+        foreach (array_merge($classTeacherRows, $scheduled) as $row) {
+            if (!isset($merged[$row['section_id']])) {
+                $merged[$row['section_id']] = $row;
+            }
+        }
+        ksort($merged);
+        return array_values($merged);
     }
 
     function getClassTeacher($classID = '')

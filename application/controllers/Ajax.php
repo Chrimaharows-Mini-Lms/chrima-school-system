@@ -178,15 +178,7 @@ class Ajax extends MY_Controller
         if (!empty($classID)) {
             $getClassTeacher = $this->app_lib->getClassTeacher($classID);
             if (is_array($getClassTeacher)) {
-                $result = $getClassTeacher;
-                if (count($result) == 0) {
-                    $this->db->select('timetable_class.section_id,section.name as section_name');
-                    $this->db->from('timetable_class');
-                    $this->db->join('section', 'section.id = timetable_class.section_id', 'left');
-                    $this->db->where(array('timetable_class.teacher_id' => get_loggedin_user_id(), 'timetable_class.session_id' => get_session_id(), 'timetable_class.class_id' => $classID));
-                    $this->db->group_by('timetable_class.section_id'); 
-                    $result = $this->db->get()->result_array();
-                }
+                $result = $this->app_lib->getTeacherSectionsByClass($classID, $getClassTeacher);
             } else {
                 $result = $this->db->select('sections_allocation.section_id,section.name as section_name')
                     ->from('sections_allocation')
