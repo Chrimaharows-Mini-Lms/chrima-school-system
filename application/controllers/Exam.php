@@ -370,6 +370,9 @@ class Exam extends Admin_Controller
         $this->data['subject_id'] = $subjectID;
         $this->data['exam_id'] = $examID;
         if (isset($_POST['search'])) {
+            if (!$this->subject_model->teacherCanAccessSubject($classID, $sectionID, $subjectID)) {
+                access_denied();
+            }
             $this->data['timetable_detail'] = $this->exam_model->getTimetableDetail($classID, $sectionID, $examID, $subjectID);
             $this->data['student'] = $this->exam_model->getMarkAndStudent($branchID, $classID, $sectionID, $examID, $subjectID);
         }
@@ -400,6 +403,9 @@ class Exam extends Admin_Controller
                 $sectionID = $this->input->post('section_id');
                 $subjectID = $this->input->post('subject_id');
                 $examID = $this->input->post('exam_id');
+                if (!$this->subject_model->teacherCanAccessSubject($classID, $sectionID, $subjectID)) {
+                    ajax_access_denied();
+                }
                 $inputMarks = $this->input->post('mark');
                 foreach ($inputMarks as $key => $value) {
                     $assMark = array();
